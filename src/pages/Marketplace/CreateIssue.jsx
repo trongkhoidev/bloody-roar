@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { PlusCircle, DollarSign, Github, AlertCircle } from "lucide-react";
+import { PlusCircle, DollarSign, Github, AlertCircle, Upload, X, FileText, Tag, Folder, Loader2 } from "lucide-react";
 
 const CreateIssue = () => {
     const { user } = useAuth();
@@ -55,10 +55,18 @@ const CreateIssue = () => {
 
     if (user?.role !== 'CLIENT') {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <AlertCircle size={48} className="text-red-500 mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-                <p className="text-gray-500">Only authorized Clients can post issues.</p>
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+                <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+                    <AlertCircle size={40} className="text-red-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+                <p className="text-slate-400 max-w-md">Only verified clients can post bounties. Please register as a client to continue.</p>
+                <button 
+                    onClick={() => navigate('/')}
+                    className="mt-6 px-6 py-3 bg-[#334155] hover:bg-[#475569] text-white rounded-xl font-medium transition-colors"
+                >
+                    Return to Marketplace
+                </button>
             </div>
         );
     }
@@ -85,154 +93,224 @@ const CreateIssue = () => {
                 navigate(`/issue/${res.data.data._id}`);
             }
         } catch (error) {
-            alert(error.response?.data?.message || "Failed to create issue");
+            alert(error.response?.data?.message || "Failed to create bounty");
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <PlusCircle className="text-red-600" />
-                Post a New Bounty
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                    <input
-                        type="text"
-                        name="title"
-                        required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
-                        placeholder="e.g. Fix memory leak in payment module"
-                        value={formData.title}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                        <select
-                            name="category"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
-                            value={formData.category}
-                            onChange={handleChange}
-                        >
-                            <option value="Web">Web Development</option>
-                            <option value="Mobile">Mobile App</option>
-                            <option value="Blockchain">Blockchain</option>
-                            <option value="AI">AI / Machine Learning</option>
-                            <option value="Game">Game Development</option>
-                            <option value="Other">Other</option>
-                        </select>
+        <div className="max-w-3xl mx-auto animate-fade-in">
+            {/* Header */}
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-indigo-500/10 rounded-xl">
+                        <PlusCircle className="text-indigo-400" size={24} />
                     </div>
+                    <h2 className="text-2xl font-bold text-white">Post a New Bounty</h2>
+                </div>
+                <p className="text-slate-400">Create a bounty for developers to solve. Funds are secured via smart contract.</p>
+            </div>
 
+            {/* Form Card */}
+            <div className="bg-[#1e293b] rounded-2xl border border-[#334155] overflow-hidden">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                    {/* Title */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tags (Comma Separated)</label>
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                            <FileText size={16} className="text-slate-400" />
+                            Bounty Title
+                        </label>
                         <input
                             type="text"
-                            name="tags"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
-                            placeholder="React, Node.js, Security"
-                            value={formData.tags}
+                            name="title"
+                            required
+                            className="w-full px-4 py-3.5 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                            placeholder="e.g. Fix memory leak in payment module"
+                            value={formData.title}
                             onChange={handleChange}
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Budget (ETH)</label>
-                        <div className="relative">
-                            <DollarSign className="absolute left-3 top-3 text-gray-400" size={18} />
+                    {/* Category & Tags Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                                <Folder size={16} className="text-slate-400" />
+                                Category
+                            </label>
+                            <select
+                                name="category"
+                                className="w-full px-4 py-3.5 bg-[#0f172a] border border-[#334155] rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer transition-all"
+                                value={formData.category}
+                                onChange={handleChange}
+                            >
+                                <option value="Web">Web Development</option>
+                                <option value="Mobile">Mobile App</option>
+                                <option value="Blockchain">Blockchain</option>
+                                <option value="AI">AI / Machine Learning</option>
+                                <option value="Game">Game Development</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                                <Tag size={16} className="text-slate-400" />
+                                Tags (Comma Separated)
+                            </label>
                             <input
-                                type="number"
-                                name="budget"
-                                required
-                                min="0"
-                                step="0.01"
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
-                                placeholder="0.5"
-                                value={formData.budget}
+                                type="text"
+                                name="tags"
+                                className="w-full px-4 py-3.5 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                                placeholder="React, Node.js, Security"
+                                value={formData.tags}
                                 onChange={handleChange}
                             />
                         </div>
                     </div>
-                </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Github Repository URL</label>
-                    <div className="relative">
-                        <Github className="absolute left-3 top-3 text-gray-400" size={18} />
-                        <input
-                            type="url"
-                            name="githubRepoUrl"
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
-                            placeholder="https://github.com/username/repo"
-                            value={formData.githubRepoUrl}
-                            onChange={handleChange}
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea
-                        name="description"
-                        required
-                        rows="6"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
-                        placeholder="Describe the issue in detail... (Paste images here)"
-                        value={formData.description}
-                        onChange={handleChange}
-                        onPaste={handlePaste}
-                    />
-                </div>
-
-                {/* Attachments Preview */}
-                {formData.attachments.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                        {formData.attachments.map((url, idx) => (
-                            <div key={idx} className="relative group">
-                                <img src={`http://localhost:3000${url}`} alt="Preview" className="w-full h-20 object-cover rounded-lg border border-gray-200" />
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== idx) }))}
-                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition"
-                                >
-                                    &times;
-                                </button>
+                    {/* Budget & GitHub Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                                <DollarSign size={16} className="text-amber-400" />
+                                Bounty Amount (ETH)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    name="budget"
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full px-4 py-3.5 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                                    placeholder="0.5"
+                                    value={formData.budget}
+                                    onChange={handleChange}
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">ETH</span>
                             </div>
-                        ))}
+                        </div>
+
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                                <Github size={16} className="text-slate-400" />
+                                GitHub Repository (Optional)
+                            </label>
+                            <input
+                                type="url"
+                                name="githubRepoUrl"
+                                className="w-full px-4 py-3.5 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                                placeholder="https://github.com/username/repo"
+                                value={formData.githubRepoUrl}
+                                onChange={handleChange}
+                            />
+                        </div>
                     </div>
-                )}
 
-                {/* File Upload Button */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
-                    <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                    />
-                </div>
+                    {/* Description */}
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                            <FileText size={16} className="text-slate-400" />
+                            Description
+                        </label>
+                        <textarea
+                            name="description"
+                            required
+                            rows="6"
+                            className="w-full px-4 py-3.5 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-all"
+                            placeholder="Describe the issue in detail. You can also paste images directly here..."
+                            value={formData.description}
+                            onChange={handleChange}
+                            onPaste={handlePaste}
+                        />
+                        <p className="text-xs text-slate-500 mt-2">Tip: Paste images directly or use the upload button below</p>
+                    </div>
 
-                <div className="pt-4 border-t border-gray-100">
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-red-700 transition disabled:opacity-50 shadow-lg shadow-red-200"
-                    >
-                        {isLoading ? "Posting..." : "Post Bounty"}
-                    </button>
-                    <p className="text-center text-xs text-gray-400 mt-4">
-                        Funds will be held in Smart Contract upon confirmation.
-                    </p>
-                </div>
-            </form>
+                    {/* Attachments Preview */}
+                    {formData.attachments.length > 0 && (
+                        <div>
+                            <label className="text-sm font-medium text-slate-300 mb-3 block">Attached Files</label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {formData.attachments.map((url, idx) => (
+                                    <div key={idx} className="relative group rounded-xl overflow-hidden border border-[#334155]">
+                                        <img 
+                                            src={`http://localhost:3000${url}`} 
+                                            alt="Preview" 
+                                            className="w-full h-24 object-cover" 
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ 
+                                                ...prev, 
+                                                attachments: prev.attachments.filter((_, i) => i !== idx) 
+                                            }))}
+                                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* File Upload */}
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
+                            <Upload size={16} className="text-slate-400" />
+                            Attachments
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                id="file-upload"
+                            />
+                            <label 
+                                htmlFor="file-upload"
+                                className="flex items-center justify-center gap-3 w-full p-6 border-2 border-dashed border-[#334155] rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/5 cursor-pointer transition-all group"
+                            >
+                                <div className="p-3 bg-[#334155] rounded-xl group-hover:bg-indigo-500/10 transition-colors">
+                                    <Upload size={24} className="text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-white font-medium">Click to upload files</p>
+                                    <p className="text-sm text-slate-400">PNG, JPG, GIF up to 10MB</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Submit */}
+                    <div className="pt-6 border-t border-[#334155]">
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg hover:shadow-indigo-500/25 text-white font-bold py-4 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={20} />
+                                    Creating Bounty...
+                                </>
+                            ) : (
+                                <>
+                                    <PlusCircle size={20} />
+                                    Post Bounty
+                                </>
+                            )}
+                        </button>
+                        <p className="text-center text-xs text-slate-500 mt-4">
+                            Funds will be held in Smart Contract upon developer approval.
+                        </p>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

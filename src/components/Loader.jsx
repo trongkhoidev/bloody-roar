@@ -3,9 +3,12 @@ import { Loader2 } from 'lucide-react';
 
 const Loader = ({ text = "Loading..." }) => {
     return (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <Loader2 className="animate-spin text-red-600 mb-3" size={48} />
-            <p className="font-medium animate-pulse">{text}</p>
+        <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+                <div className="w-16 h-16 rounded-full border-4 border-[#334155]"></div>
+                <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+            </div>
+            <p className="mt-4 text-slate-400 font-medium animate-pulse">{text}</p>
         </div>
     );
 };
