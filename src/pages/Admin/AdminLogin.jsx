@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, User, AlertCircle } from 'lucide-react';
+import { Shield, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 
 const AdminLogin = () => {
     const navigate = useNavigate();
@@ -11,7 +11,6 @@ const AdminLogin = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Get admin credentials from environment variables
     const ADMIN_CREDENTIALS = {
         username: import.meta.env.VITE_ADMIN_USERNAME || 'admin',
         password: import.meta.env.VITE_ADMIN_PASSWORD || 'admin123'
@@ -44,43 +43,43 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-orange-900 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 relative overflow-hidden">
             {/* Animated Background */}
-            <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"></div>
             </div>
 
             <div className="max-w-md w-full relative z-10">
                 {/* Logo & Title */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl mb-6 shadow-2xl">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-6 shadow-2xl shadow-indigo-500/30">
                         <Shield className="text-white" size={40} />
                     </div>
                     <h1 className="text-4xl font-bold text-white mb-2">Admin Portal</h1>
-                    <p className="text-gray-300 text-lg">Bloody Roar Platform</p>
-                    <div className="mt-4 inline-block px-4 py-1 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-                        <p className="text-sm text-white/80">Secure Admin Access</p>
+                    <p className="text-slate-400 text-lg">Bloody Roar Platform</p>
+                    <div className="mt-4 inline-block px-4 py-1.5 bg-indigo-500/10 backdrop-blur-sm rounded-full border border-indigo-500/20">
+                        <p className="text-sm text-indigo-400">Secure Admin Access</p>
                     </div>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-gray-100">
+                <div className="bg-[#1e293b] backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-[#334155]">
                     <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-2xl font-bold text-white mb-2">
                             Welcome Back
                         </h2>
-                        <p className="text-gray-500 text-sm">
+                        <p className="text-slate-400 text-sm">
                             Sign in to access the admin dashboard
                         </p>
                     </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-start gap-3">
-                            <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
+                            <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
                             <div>
-                                <p className="text-red-800 font-medium text-sm">Authentication Failed</p>
-                                <p className="text-red-600 text-sm mt-1">{error}</p>
+                                <p className="text-red-400 font-medium text-sm">Authentication Failed</p>
+                                <p className="text-red-400/80 text-sm mt-1">{error}</p>
                             </div>
                         </div>
                     )}
@@ -88,19 +87,19 @@ const AdminLogin = () => {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Username */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-slate-300 mb-2">
                                 Username
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <User className="text-gray-400" size={20} />
+                                    <User className="text-slate-500" size={20} />
                                 </div>
                                 <input
                                     type="text"
                                     name="username"
                                     value={credentials.username}
                                     onChange={handleChange}
-                                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                    className="w-full pl-12 pr-4 py-3 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="Enter your username"
                                     required
                                     autoComplete="username"
@@ -110,19 +109,19 @@ const AdminLogin = () => {
 
                         {/* Password */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-slate-300 mb-2">
                                 Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock className="text-gray-400" size={20} />
+                                    <Lock className="text-slate-500" size={20} />
                                 </div>
                                 <input
                                     type="password"
                                     name="password"
                                     value={credentials.password}
                                     onChange={handleChange}
-                                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                    className="w-full pl-12 pr-4 py-3 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="Enter your password"
                                     required
                                     autoComplete="current-password"
@@ -134,11 +133,11 @@ const AdminLogin = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <Loader2 className="animate-spin" size={20} />
                                     Authenticating...
                                 </span>
                             ) : (
@@ -147,13 +146,13 @@ const AdminLogin = () => {
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-gray-200">
-                        <div className="bg-gray-50 rounded-xl p-4">
-                            <p className="text-xs text-gray-600 text-center leading-relaxed">
-                                <Shield className="inline mr-1" size={14} />
-                                Protected area • Authorized personnel only
+                    <div className="mt-8 pt-6 border-t border-[#334155]">
+                        <div className="bg-[#0f172a] rounded-xl p-4 border border-[#334155]">
+                            <p className="text-xs text-slate-400 text-center leading-relaxed flex items-center justify-center gap-1">
+                                <Shield size={14} className="text-indigo-400" />
+                                Protected area - Authorized personnel only
                             </p>
-                            <p className="text-xs text-gray-500 text-center mt-2">
+                            <p className="text-xs text-slate-500 text-center mt-2">
                                 Need help? Contact system administrator
                             </p>
                         </div>
@@ -162,8 +161,8 @@ const AdminLogin = () => {
 
                 {/* Footer Info */}
                 <div className="mt-6 text-center">
-                    <p className="text-white/60 text-sm">
-                        © {new Date().getFullYear()} Bloody Roar Platform
+                    <p className="text-slate-500 text-sm">
+                        Bloody Roar Platform {new Date().getFullYear()}
                     </p>
                 </div>
             </div>
