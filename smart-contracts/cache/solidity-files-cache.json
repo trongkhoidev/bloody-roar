@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/Users/admin/Development/bloody-roar/smart-contracts/contracts/BloodyRoarEscrow.sol": {
+      "lastModificationDate": 1769566681696,
+      "contentHash": "b593fcf3db50b9cd5f0e6b3a79ff46cf",
+      "sourceName": "contracts/BloodyRoarEscrow.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "BloodyRoarEscrow"
+      ]
+    }
+  }
+}
