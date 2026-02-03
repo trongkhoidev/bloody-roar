@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, Github, Send, DollarSign, User, Star, Clock, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { 
+    ArrowLeft, Calendar, Github, Send, DollarSign, User, Star, Clock, 
+    ExternalLink, FileText, Loader2, Shield, CheckCircle, Globe, 
+    Cpu, Sparkles, Smartphone, Gamepad2, Code, Users, Zap
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import CommentSection from "../../components/Comments/CommentSection";
 
@@ -48,15 +52,26 @@ const IssueDetail = () => {
         }
     };
 
-    const getCategoryColor = (category) => {
-        const colors = {
-            'Web': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-            'Blockchain': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-            'AI': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-            'Mobile': 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-            'Game': 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+    const getCategoryIcon = (category) => {
+        switch (category) {
+            case 'Web': return <Globe size={14} />;
+            case 'Blockchain': return <Cpu size={14} />;
+            case 'AI': return <Sparkles size={14} />;
+            case 'Mobile': return <Smartphone size={14} />;
+            case 'Game': return <Gamepad2 size={14} />;
+            default: return <Code size={14} />;
+        }
+    };
+
+    const getCategoryClass = (category) => {
+        const classes = {
+            'Web': 'category-web',
+            'Blockchain': 'category-blockchain',
+            'AI': 'category-ai',
+            'Mobile': 'category-mobile',
+            'Game': 'category-game',
         };
-        return colors[category] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        return classes[category] || 'bg-[#262626] text-[#a1a1aa] border-[#333]';
     };
 
     const getStatusBadge = (status) => {
@@ -74,23 +89,24 @@ const IssueDetail = () => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="animate-spin text-indigo-500 mb-3" size={48} />
-                <p className="text-slate-400 font-medium">Loading bounty details...</p>
+            <div className="flex flex-col items-center justify-center py-32">
+                <Loader2 className="animate-spin text-white mb-4" size={32} />
+                <p className="text-[#a1a1aa] text-sm">Loading bounty details...</p>
             </div>
         );
     }
 
     if (!issue) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                    <FileText className="text-red-400" size={24} />
+            <div className="flex flex-col items-center justify-center py-32">
+                <div className="w-14 h-14 bg-[#171717] rounded-full flex items-center justify-center mb-4 border border-[#262626]">
+                    <FileText className="text-[#71717a]" size={24} />
                 </div>
-                <p className="text-red-400 text-lg font-medium">Bounty not found</p>
+                <p className="text-[#a1a1aa] text-lg font-medium mb-1">Bounty not found</p>
+                <p className="text-[#71717a] text-sm mb-4">This bounty may have been removed or doesn't exist.</p>
                 <button 
                     onClick={() => navigate('/')}
-                    className="mt-4 text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-[13px] text-[#0070f3] hover:underline transition-colors"
                 >
                     Return to marketplace
                 </button>
@@ -103,207 +119,212 @@ const IssueDetail = () => {
             {/* Back Button */}
             <button 
                 onClick={() => navigate(-1)} 
-                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+                className="flex items-center gap-2 text-[#a1a1aa] hover:text-white transition-colors text-[13px] group"
             >
-                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> 
+                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
                 Back to Marketplace
             </button>
 
-            {/* Main Card */}
-            <div className="bg-[#1e293b] rounded-2xl border border-[#334155] overflow-hidden">
-                {/* Hero Header */}
-                <div className="bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-indigo-900/20 p-8 border-b border-[#334155]">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 flex-wrap mb-4">
-                                <span className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${getCategoryColor(issue?.category)}`}>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Main Content */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Header Card */}
+                    <div className="bg-[#0a0a0a] rounded-xl border border-[#262626] overflow-hidden">
+                        <div className="p-6">
+                            {/* Badges */}
+                            <div className="flex items-center gap-2 flex-wrap mb-4">
+                                <span className={`badge ${getCategoryClass(issue?.category)} flex items-center gap-1.5`}>
+                                    {getCategoryIcon(issue?.category)}
                                     {issue?.category || "General"}
                                 </span>
                                 <span className={`badge ${getStatusBadge(issue?.status)}`}>
                                     {issue?.status || "UNKNOWN"}
                                 </span>
-                            </div>
-                            
-                            <h1 className="text-3xl font-bold text-white mb-4">{issue?.title || "Untitled"}</h1>
-                            
-                            <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-                                <span className="flex items-center gap-2">
-                                    <Calendar size={16} className="text-slate-500" /> 
+                                <span className="text-[12px] text-[#71717a]">
                                     Posted {new Date(issue?.createdAt || Date.now()).toLocaleDateString()}
                                 </span>
-                                <span className="flex items-center gap-2">
-                                    <Clock size={16} className="text-slate-500" />
+                            </div>
+                            
+                            <h1 className="text-2xl font-bold text-white mb-4">{issue?.title || "Untitled"}</h1>
+                            
+                            {/* Meta Info */}
+                            <div className="flex flex-wrap items-center gap-4 text-[13px] text-[#a1a1aa]">
+                                <span className="flex items-center gap-1.5">
+                                    <Users size={14} className="text-[#71717a]" />
                                     {issue?.applicationCount || 0} applications
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <Clock size={14} className="text-[#71717a]" />
+                                    {new Date(issue?.createdAt || Date.now()).toLocaleDateString()}
                                 </span>
                             </div>
                         </div>
-                        
-                        {/* Bounty Card */}
-                        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-5 flex-shrink-0">
-                            <p className="text-amber-400/80 text-sm font-medium mb-1">Bounty Reward</p>
-                            <div className="flex items-baseline gap-2">
-                                <DollarSign size={24} className="text-amber-400" />
-                                <span className="text-4xl font-bold text-amber-400">{issue?.bounty?.amount || 0}</span>
-                                <span className="text-lg text-amber-400/60 font-medium">{issue?.bounty?.currency || "ETH"}</span>
-                            </div>
-                            <p className="text-slate-400 text-xs mt-2">Secured via Smart Contract</p>
+                    </div>
+
+                    {/* Description Card */}
+                    <div className="bg-[#0a0a0a] rounded-xl border border-[#262626] p-6">
+                        <h3 className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider mb-4">Description</h3>
+                        <div className="text-[#ededed] leading-relaxed whitespace-pre-wrap text-[14px]">
+                            {issue?.description || "No description provided"}
                         </div>
-                    </div>
-                </div>
 
-                {/* Content Grid */}
-                <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* Description */}
-                        <section>
-                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                <FileText size={20} className="text-indigo-400" />
-                                Description
-                            </h3>
-                            <div className="text-slate-300 leading-relaxed whitespace-pre-wrap bg-[#0f172a]/50 p-5 rounded-xl border border-[#334155]">
-                                {issue?.description || "No description provided"}
-                            </div>
-
-                            {/* Attachments */}
-                            {issue?.attachments && issue.attachments.length > 0 && (
-                                <div className="mt-6 space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Attachments</h4>
-                                    <div className="grid gap-4">
-                                        {issue.attachments.map((attachment, index) => (
-                                            <div key={index} className="rounded-xl overflow-hidden border border-[#334155]">
-                                                <img
-                                                    src={`${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'}${attachment}`}
-                                                    alt={`Attachment ${index + 1}`}
-                                                    className="w-full h-auto"
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                    }}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </section>
-
-                        {/* Application Form */}
-                        {user?.role === 'DEVELOPER' && issue.status === 'OPEN' && (
-                            <section className="bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-6 rounded-2xl border border-indigo-500/20">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <Send size={20} className="text-indigo-400" />
-                                        Apply for this Bounty
-                                    </h3>
-                                    <div className="text-right">
-                                        <p className="text-xs text-slate-400">You'll earn</p>
-                                        <p className="text-xl font-bold text-amber-400">
-                                            {issue.bounty?.amount} <span className="text-sm text-slate-400">{issue.bounty?.currency}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                <textarea
-                                    className="w-full p-4 bg-[#0f172a] border border-[#334155] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-all"
-                                    rows="5"
-                                    placeholder="Write your cover letter here. Explain why you're the perfect fit for this task, highlight your relevant experience and approach..."
-                                    value={coverLetter}
-                                    onChange={(e) => setCoverLetter(e.target.value)}
-                                />
-                                
-                                <button
-                                    onClick={handleApply}
-                                    disabled={applying}
-                                    className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg hover:shadow-indigo-500/25 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                                >
-                                    {applying ? (
-                                        <>
-                                            <Loader2 className="animate-spin" size={20} />
-                                            Submitting Application...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Send size={20} />
-                                            Submit Application
-                                        </>
-                                    )}
-                                </button>
-                            </section>
-                        )}
-
-                        {/* Comments */}
-                        <CommentSection issueId={id} />
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Client Info Card */}
-                        <div className="bg-[#0f172a]/50 p-5 rounded-xl border border-[#334155]">
-                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Posted by</h4>
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                                    {issue.clientId?.name?.[0]?.toUpperCase() || 'C'}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-white text-lg">{issue.clientId?.name || "Client"}</p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <div className="flex items-center gap-1 text-amber-400">
-                                            <Star size={14} fill="currentColor" />
-                                            <span className="text-sm font-medium">{issue.clientId?.reputation || 0}</span>
+                        {/* Attachments */}
+                        {issue?.attachments && issue.attachments.length > 0 && (
+                            <div className="mt-6 pt-6 border-t border-[#262626]">
+                                <h4 className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider mb-4">Attachments</h4>
+                                <div className="grid gap-3">
+                                    {issue.attachments.map((attachment, index) => (
+                                        <div key={index} className="rounded-lg overflow-hidden border border-[#262626]">
+                                            <img
+                                                src={`${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'}${attachment}`}
+                                                alt={`Attachment ${index + 1}`}
+                                                className="w-full h-auto"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
                                         </div>
-                                        <span className="text-slate-500 text-sm">reputation</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* GitHub Link */}
-                        {issue.githubRepoUrl && (
-                            <a
-                                href={issue.githubRepoUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-3 w-full p-4 bg-[#0f172a]/50 border border-[#334155] rounded-xl hover:border-[#475569] hover:bg-[#1e293b] transition-all font-medium text-white group"
-                            >
-                                <Github size={20} />
-                                View Repository
-                                <ExternalLink size={16} className="text-slate-400 group-hover:text-white transition-colors" />
-                            </a>
-                        )}
-
-                        {/* Tags */}
-                        {issue.tags && issue.tags.length > 0 && (
-                            <div className="bg-[#0f172a]/50 p-5 rounded-xl border border-[#334155]">
-                                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Skills Required</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {issue.tags.map((tag, i) => (
-                                        <span 
-                                            key={i} 
-                                            className="px-3 py-1.5 bg-[#334155] text-slate-300 rounded-lg text-sm"
-                                        >
-                                            {tag}
-                                        </span>
                                     ))}
                                 </div>
                             </div>
                         )}
+                    </div>
 
-                        {/* Quick Stats */}
-                        <div className="bg-[#0f172a]/50 p-5 rounded-xl border border-[#334155]">
-                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Quick Stats</h4>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-400 text-sm">Category</span>
-                                    <span className="text-white font-medium">{issue.category || 'General'}</span>
+                    {/* Application Form */}
+                    {user?.role === 'DEVELOPER' && issue.status === 'OPEN' && (
+                        <div className="bg-[#0a0a0a] rounded-xl border border-[#262626] p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-[#0070f3]/10 rounded-lg flex items-center justify-center">
+                                        <Send size={18} className="text-[#0070f3]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-semibold">Apply for this Bounty</h3>
+                                        <p className="text-[12px] text-[#71717a]">Submit your application to work on this task</p>
+                                    </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-400 text-sm">Status</span>
-                                    <span className={`badge ${getStatusBadge(issue.status)}`}>{issue.status}</span>
+                                <div className="text-right">
+                                    <p className="text-[11px] text-[#71717a] uppercase tracking-wider">Reward</p>
+                                    <p className="text-xl font-bold bounty-text">
+                                        {issue.bounty?.amount} {issue.bounty?.currency}
+                                    </p>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-400 text-sm">Applications</span>
-                                    <span className="text-white font-medium">{issue.applicationCount || 0}</span>
+                            </div>
+                            
+                            <textarea
+                                className="w-full p-4 bg-[#171717] border border-[#262626] rounded-lg text-white placeholder-[#71717a] focus:outline-none focus:border-[#404040] resize-none transition-all text-[14px] leading-relaxed"
+                                rows="5"
+                                placeholder="Write your cover letter here. Explain why you're the perfect fit for this task, highlight your relevant experience and approach..."
+                                value={coverLetter}
+                                onChange={(e) => setCoverLetter(e.target.value)}
+                            />
+                            
+                            <button
+                                onClick={handleApply}
+                                disabled={applying}
+                                className="w-full mt-4 bg-white text-black px-6 py-3 rounded-lg font-medium text-[14px] hover:bg-[#e5e5e5] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {applying ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={16} />
+                                        Submitting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={16} />
+                                        Submit Application
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Comments */}
+                    <CommentSection issueId={id} />
+                </div>
+
+                {/* Right Column - Sidebar */}
+                <div className="space-y-4">
+                    {/* Bounty Card */}
+                    <div className="bg-gradient-to-br from-[#171717] to-[#0a0a0a] rounded-xl border border-[#262626] p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Zap size={16} className="text-[#f5a623]" />
+                            <span className="text-[12px] font-medium text-[#a1a1aa] uppercase tracking-wider">Bounty Reward</span>
+                        </div>
+                        <div className="flex items-baseline gap-2 mb-3">
+                            <span className="text-4xl font-bold bounty-text">{issue?.bounty?.amount || 0}</span>
+                            <span className="text-lg text-[#71717a] font-medium">{issue?.bounty?.currency || "ETH"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[12px] text-[#71717a]">
+                            <Shield size={12} />
+                            <span>Secured via Smart Contract</span>
+                        </div>
+                    </div>
+
+                    {/* Client Info */}
+                    <div className="bg-[#0a0a0a] rounded-xl border border-[#262626] p-5">
+                        <h4 className="text-[12px] font-medium text-[#71717a] uppercase tracking-wider mb-4">Posted by</h4>
+                        <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6] rounded-lg flex items-center justify-center text-white font-medium">
+                                {issue.clientId?.name?.[0]?.toUpperCase() || 'C'}
+                            </div>
+                            <div>
+                                <p className="font-medium text-white">{issue.clientId?.name || "Client"}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <Star size={12} className="text-[#f5a623]" fill="#f5a623" />
+                                    <span className="text-[12px] text-[#a1a1aa]">{issue.clientId?.reputation || 0} reputation</span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* GitHub Link */}
+                    {issue.githubRepoUrl && (
+                        <a
+                            href={issue.githubRepoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between w-full p-4 bg-[#0a0a0a] border border-[#262626] rounded-xl hover:border-[#404040] transition-all font-medium text-white text-[13px] group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Github size={18} />
+                                <span>View Repository</span>
+                            </div>
+                            <ExternalLink size={14} className="text-[#71717a] group-hover:text-white transition-colors" />
+                        </a>
+                    )}
+
+                    {/* Tags */}
+                    {issue.tags && issue.tags.length > 0 && (
+                        <div className="bg-[#0a0a0a] rounded-xl border border-[#262626] p-5">
+                            <h4 className="text-[12px] font-medium text-[#71717a] uppercase tracking-wider mb-3">Skills Required</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {issue.tags.map((tag, i) => (
+                                    <span 
+                                        key={i} 
+                                        className="px-2.5 py-1 bg-[#171717] text-[#a1a1aa] rounded-md text-[12px] border border-[#262626]"
+                                    >
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quick Stats */}
+                    <div className="bg-[#0a0a0a] rounded-xl border border-[#262626] p-5">
+                        <h4 className="text-[12px] font-medium text-[#71717a] uppercase tracking-wider mb-4">Quick Stats</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[#a1a1aa] text-[13px]">Category</span>
+                                <span className="text-white text-[13px] font-medium">{issue.category || 'General'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-[#a1a1aa] text-[13px]">Status</span>
+                                <span className={`badge ${getStatusBadge(issue.status)}`}>{issue.status}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-[#a1a1aa] text-[13px]">Applications</span>
+                                <span className="text-white text-[13px] font-medium">{issue.applicationCount || 0}</span>
                             </div>
                         </div>
                     </div>
