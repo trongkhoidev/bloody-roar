@@ -27,7 +27,7 @@ The admin credentials are stored in environment variables for security.
 ### Default Credentials (Development Only)
 
 If you don't set custom credentials, the system will use:
-- Username: `admin`
+- Username: `admin@gmail.com`
 - Password: `admin123`
 
 **⚠️ WARNING:** These default credentials should NEVER be used in production!
