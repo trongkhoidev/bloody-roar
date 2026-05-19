@@ -57,9 +57,15 @@ typechain-types/
 ignition/deployments/
 *.abi
 *.bin
+hardhat_node.log
 
-# Misc
-.cache
-.parcel-cache
-.next
-out
+# Monorepo Caches & Builds
+.turbo/
+.eslintcache
+.vite/
+.cache/
+.parcel-cache/
+.next/
+out/
+dist/
+dist-ssr/

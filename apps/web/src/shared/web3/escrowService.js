@@ -4,13 +4,14 @@ import contractConfig from "./contractConfig.json";
 export const CONTRACT_ADDRESS = contractConfig.address;
 export const CONTRACT_ABI = contractConfig.abi;
 
-// State enum mapping (matches hardened Solidity enum)
+// State enum mapping (matches hardened Solidity enum v2)
 export const ESCROW_STATE = {
-    0: "AWAITING_STAKE",
-    1: "AWAITING_DELIVERY",
-    2: "COMPLETED",
-    3: "REFUNDED",
-    4: "DISPUTED"
+    0: "AWAITING_DELIVERY",
+    1: "COMPLETED",
+    2: "REFUNDED",
+    3: "DISPUTED",
+    4: "RESOLUTION_PROPOSED",
+    5: "CANCELLED"
 };
 
 /**
@@ -36,19 +37,27 @@ export const getEscrowContract = async () => {
 export const depositFunds = async (issueId, workerAddress, amountEth) => {
     const contract = await getEscrowContract();
     const formattedId = formatIssueId(issueId);
-    // client deposits rewardAmount + 10% commitment stake (so amountEth here is total amount = 1.1 * reward)
+    // client deposits 100% of reward amount
     const amountWei = ethers.parseEther(amountEth.toString());
     const tx = await contract.deposit(formattedId, workerAddress, { value: amountWei });
     await tx.wait();
     return tx.hash;
 };
 
-// Worker stakes their 10% commitment deposit
-export const stakeDeveloper = async (issueId, stakeEth) => {
+// Request Mutual Cancel
+export const requestCancel = async (issueId) => {
     const contract = await getEscrowContract();
     const formattedId = formatIssueId(issueId);
-    const amountWei = ethers.parseEther(stakeEth.toString());
-    const tx = await contract.stakeDeveloper(formattedId, { value: amountWei });
+    const tx = await contract.requestCancel(formattedId);
+    await tx.wait();
+    return tx.hash;
+};
+
+// Approve Mutual Cancel
+export const approveCancel = async (issueId) => {
+    const contract = await getEscrowContract();
+    const formattedId = formatIssueId(issueId);
+    const tx = await contract.approveCancel(formattedId);
     await tx.wait();
     return tx.hash;
 };
@@ -89,10 +98,12 @@ export const getEscrowStatus = async (issueId) => {
         client: escrow.client,
         worker: escrow.worker,
         rewardAmount: ethers.formatEther(escrow.rewardAmount),
-        clientStake: ethers.formatEther(escrow.clientStake),
-        workerStake: ethers.formatEther(escrow.workerStake),
         createdAt: Number(escrow.createdAt),
         state: ESCROW_STATE[Number(escrow.state)] || "UNKNOWN",
-        exists: escrow.isValue
+        exists: escrow.isValue,
+        cancelRequestedByClient: escrow.cancelRequestedByClient,
+        cancelRequestedByWorker: escrow.cancelRequestedByWorker,
+        disputeResolvedAt: Number(escrow.disputeResolvedAt),
+        clientPercent: Number(escrow.clientPercent)
     };
 };

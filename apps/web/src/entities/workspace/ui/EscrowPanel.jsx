@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Shield, Lock, Unlock, RefreshCw, ExternalLink, Loader2, CheckCircle, AlertCircle, Scale, Clock } from 'lucide-react';
-import { depositFunds, stakeDeveloper, releaseFunds, raiseDispute, getEscrowStatus, claimTimeout } from '@shared/web3/escrowService';
+import { Shield, Lock, Unlock, RefreshCw, ExternalLink, Loader2, CheckCircle, AlertCircle, Scale, Clock, XCircle } from 'lucide-react';
+import { depositFunds, releaseFunds, raiseDispute, getEscrowStatus, claimTimeout, requestCancel, approveCancel } from '@shared/web3/escrowService';
 import { IssueStatus, PaymentStatus } from '@bloody-roar/shared-types';
 
 const STATE_STYLES = {
-    AWAITING_STAKE: { label: 'Awaiting Dev Stake', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
     AWAITING_DELIVERY: { label: 'In Escrow (Active)', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' }, // Map to ESCROWED
     COMPLETED: { label: 'Released', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
     REFUNDED: { label: 'Refunded', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
     DISPUTED: { label: 'Disputed', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+    RESOLUTION_PROPOSED: { label: 'Resolution Proposed', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    CANCELLED: { label: 'Cancelled', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
     AWAITING_PAYMENT: { label: 'Not Deposited', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' }, // Map to NONE
     FAILED: { label: 'Payment Failed', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
 };
@@ -50,6 +51,7 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
     // Notify backend after on-chain tx
     const notifyBackend = async (action, hash) => {
         const endpointMap = { deposit: 'deposit', release: 'release', dispute: 'dispute' };
+        if (!endpointMap[action]) return; // ignore cancel currently
         await axios.post(`/api/escrow/${endpointMap[action]}`, {
             issueId: issue._id,
             txHash: hash,
@@ -76,15 +78,13 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
         setError('');
         setLoading(true);
         try {
-            // Client deposits rewardAmount + 10% commitment stake.
-            // Reward = issue.bounty.amount. Total Client Deposit = 1.1 * Reward.
-            const rewardEth = parseFloat(issue.bounty.amount);
-            const totalClientDepositEth = (rewardEth * 1.1).toFixed(4);
+            // Client deposits exactly the reward amount.
+            const rewardEth = parseFloat(issue.bounty.amount).toFixed(4);
 
             const hash = await depositFunds(
                 issue._id.toString(),
                 issue.assignedDeveloper.walletAddress,
-                totalClientDepositEth
+                rewardEth
             );
             setTxHash(hash);
             await notifyBackend('deposit', hash);
@@ -94,23 +94,6 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
             const msg = err.message || 'Transaction failed';
             setError(msg);
             logBlockchainError('deposit', msg);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleStakeDeveloper = async () => {
-        if (!escrowState?.clientStake) return;
-        setError('');
-        setLoading(true);
-        try {
-            const hash = await stakeDeveloper(issue._id.toString(), escrowState.clientStake);
-            setTxHash(hash);
-            await checkOnChainStatus();
-            onUpdate?.();
-        } catch (err) {
-            const msg = err.message || 'Staking failed';
-            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -172,6 +155,40 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
         }
     };
 
+    const handleRequestCancel = async () => {
+        if (!window.confirm('Request mutual cancellation? This will cancel the escrow. Funds will be returned if the other party approves.')) return;
+        setError('');
+        setLoading(true);
+        try {
+            const hash = await requestCancel(issue._id.toString());
+            setTxHash(hash);
+            await checkOnChainStatus();
+            onUpdate?.();
+        } catch (err) {
+            const msg = err.message || 'Cancel request failed';
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleApproveCancel = async () => {
+        if (!window.confirm('Approve cancellation? This will immediately return funds to the client.')) return;
+        setError('');
+        setLoading(true);
+        try {
+            const hash = await approveCancel(issue._id.toString());
+            setTxHash(hash);
+            await checkOnChainStatus();
+            onUpdate?.();
+        } catch (err) {
+            const msg = err.message || 'Cancel approval failed';
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const stateStyle = STATE_STYLES[escrowState?.state] || STATE_STYLES['AWAITING_PAYMENT'];
     const daysSinceCreation = escrowState?.createdAt ? Math.floor((Date.now() / 1000 - escrowState.createdAt) / 86400) : 0;
     const canClaimTimeout = isDeveloper && escrowState?.state === 'AWAITING_DELIVERY' && daysSinceCreation >= 30;
@@ -194,28 +211,12 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
                 </button>
             </div>
 
-            {/* Amount & Stakes breakdown */}
+            {/* Amount */}
             <div className="space-y-2 border-b border-border pb-3">
                 <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-bold text-text-primary">{issue?.bounty?.amount || 0}</span>
                     <span className="text-text-muted font-medium">{issue?.bounty?.currency || 'ETH'}</span>
                 </div>
-                {escrowState && escrowState.exists && (
-                    <div className="space-y-1 text-[11px] text-slate-500 pt-1">
-                        <div className="flex justify-between">
-                            <span>Client Stake (10%):</span>
-                            <span className="text-slate-400 font-mono font-medium">{parseFloat(escrowState.clientStake || 0).toFixed(4)} ETH</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Developer Stake (10%):</span>
-                            <span className="text-slate-400 font-mono font-medium">
-                                {escrowState.state === 'AWAITING_STAKE' 
-                                 ? <span className="text-blue-400 animate-pulse font-sans">Pending Stake</span> 
-                                 : `${parseFloat(escrowState.workerStake || 0).toFixed(4)} ETH`}
-                            </span>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Chain Status Badge */}
@@ -269,18 +270,11 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold rounded-lg transition-colors text-sm disabled:opacity-50"
                             >
                                 {loading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                                Deposit {issue?.bounty?.amount} {issue?.bounty?.currency} + 10% Stake
+                                Deposit {issue?.bounty?.amount} {issue?.bounty?.currency} On-chain
                             </button>
                         )}
 
-                        {/* Awaiting Developer Staking Message */}
-                        {escrowState?.state === 'AWAITING_STAKE' && (
-                            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 text-center">
-                                Awaiting developer to stake their 10% commitment deposit...
-                            </div>
-                        )}
-
-                        {/* Release — show when escrowed and PR merged */}
+                        {/* Release — show when escrowed */}
                         {escrowState?.state === 'AWAITING_DELIVERY' && (
                             <button
                                 onClick={handleRelease}
@@ -289,6 +283,35 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
                             >
                                 {loading ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />}
                                 Release Payment to Developer
+                            </button>
+                        )}
+                        
+                        {/* Cancel Escrow */}
+                        {escrowState?.state === 'AWAITING_DELIVERY' && !escrowState?.cancelRequestedByClient && (
+                            <button
+                                onClick={handleRequestCancel}
+                                disabled={loading}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-500/20 hover:bg-slate-500/10 text-slate-300 rounded-lg transition-colors text-sm disabled:opacity-50"
+                            >
+                                {loading ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                                Request Cancellation
+                            </button>
+                        )}
+                        
+                        {escrowState?.state === 'AWAITING_DELIVERY' && escrowState?.cancelRequestedByClient && !escrowState?.cancelRequestedByWorker && (
+                            <div className="text-xs text-center text-slate-400">
+                                Waiting for worker to approve cancellation...
+                            </div>
+                        )}
+                        
+                        {escrowState?.state === 'AWAITING_DELIVERY' && escrowState?.cancelRequestedByWorker && !escrowState?.cancelRequestedByClient && (
+                            <button
+                                onClick={handleApproveCancel}
+                                disabled={loading}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-amber-500/50 hover:bg-amber-500/10 text-amber-400 rounded-lg transition-colors text-sm disabled:opacity-50"
+                            >
+                                {loading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                                Approve Cancellation
                             </button>
                         )}
 
@@ -309,18 +332,6 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
                 {/* Developer Actions */}
                 {isDeveloper && (
                     <>
-                        {/* Stake Developer — show when client has deposited but dev hasn't staked */}
-                        {escrowState?.state === 'AWAITING_STAKE' && (
-                            <button
-                                onClick={handleStakeDeveloper}
-                                disabled={loading}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-black font-semibold rounded-lg transition-colors text-sm disabled:opacity-50 shadow-lg shadow-blue-500/20"
-                            >
-                                {loading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                                Stake Commitment ({parseFloat(escrowState.clientStake || 0).toFixed(3)} ETH)
-                            </button>
-                        )}
-
                         {/* Dispute — show when escrowed and client hasn't released */}
                         {escrowState?.state === 'AWAITING_DELIVERY' && (
                             <button
@@ -330,6 +341,35 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
                             >
                                 {loading ? <Loader2 size={14} className="animate-spin" /> : <Scale size={14} />}
                                 Raise Dispute
+                            </button>
+                        )}
+                        
+                        {/* Cancel Escrow */}
+                        {escrowState?.state === 'AWAITING_DELIVERY' && !escrowState?.cancelRequestedByWorker && (
+                            <button
+                                onClick={handleRequestCancel}
+                                disabled={loading}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-500/20 hover:bg-slate-500/10 text-slate-300 rounded-lg transition-colors text-sm disabled:opacity-50"
+                            >
+                                {loading ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                                Request Cancellation
+                            </button>
+                        )}
+                        
+                        {escrowState?.state === 'AWAITING_DELIVERY' && escrowState?.cancelRequestedByWorker && !escrowState?.cancelRequestedByClient && (
+                            <div className="text-xs text-center text-slate-400">
+                                Waiting for client to approve cancellation...
+                            </div>
+                        )}
+                        
+                        {escrowState?.state === 'AWAITING_DELIVERY' && escrowState?.cancelRequestedByClient && !escrowState?.cancelRequestedByWorker && (
+                            <button
+                                onClick={handleApproveCancel}
+                                disabled={loading}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-amber-500/50 hover:bg-amber-500/10 text-amber-400 rounded-lg transition-colors text-sm disabled:opacity-50"
+                            >
+                                {loading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                                Approve Cancellation
                             </button>
                         )}
 
@@ -359,8 +399,15 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
                         A formal dispute is active. An arbiter will review this shortly.
                     </div>
                 )}
+                
+                {escrowState?.state === 'RESOLUTION_PROPOSED' && (
+                    <div className="flex items-center gap-2 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg text-xs text-purple-400 mt-2">
+                        <Clock size={12} className="flex-shrink-0" />
+                        Arbiter proposed {escrowState.clientPercent}% to Client. Waiting 24h timelock...
+                    </div>
+                )}
 
-                {(escrowState?.state === 'COMPLETED' || escrowState?.state === 'REFUNDED') && (
+                {(escrowState?.state === 'COMPLETED' || escrowState?.state === 'REFUNDED' || escrowState?.state === 'CANCELLED') && (
                     <div className="flex items-center gap-2 text-xs text-slate-500 justify-center py-1">
                         <CheckCircle size={12} className="text-emerald-400" />
                         Transaction finalized
@@ -370,7 +417,7 @@ const EscrowPanel = ({ issue, user, onUpdate }) => {
 
             {/* Info footer */}
             <p className="text-[10px] text-[#3d3d3d] leading-tight text-center">
-                Secure Escrow v2 · Arbiter Mediated · Gas Optimized
+                Secure Escrow v2 · Arbiter Mediated · KYC Checked
             </p>
         </div>
     );

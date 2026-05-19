@@ -1,33 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+interface IKycSoulboundToken {
+    function isVerified(address user) external view returns (bool);
+}
+
 contract BloodyRoarEscrow {
     
-    enum EscrowState { AWAITING_STAKE, AWAITING_DELIVERY, COMPLETED, REFUNDED, DISPUTED }
+    enum EscrowState { AWAITING_DELIVERY, COMPLETED, REFUNDED, DISPUTED, RESOLUTION_PROPOSED, CANCELLED }
 
     struct Escrow {
         address client;
         address worker;
         uint256 rewardAmount;
-        uint256 clientStake;
-        uint256 workerStake;
         uint256 createdAt;
         EscrowState state;
         bool isValue;
+        
+        // Cancellation state
+        bool cancelRequestedByClient;
+        bool cancelRequestedByWorker;
+        
+        // Dispute resolution state
+        uint256 disputeResolvedAt; // Timestamp when resolution was proposed
+        uint256 clientPercent; // Proposed percentage (0-100) for client
     }
 
     mapping(bytes32 => Escrow) public escrows;
+    
+    IKycSoulboundToken public kycToken;
     address public arbiter;
     address public owner;
     bool public paused;
+    
     uint256 public constant TIMEOUT_PERIOD = 30 days;
+    uint256 public challengePeriod; // e.g., 24 hours
 
-    event Deposited(bytes32 indexed issueId, address indexed client, uint256 totalAmount, uint256 rewardAmount, uint256 clientStake);
-    event Staked(bytes32 indexed issueId, address indexed worker, uint256 workerStake);
+    event Deposited(bytes32 indexed issueId, address indexed client, address indexed worker, uint256 rewardAmount);
     event Released(bytes32 indexed issueId, address indexed worker, uint256 amountReleased);
     event Refunded(bytes32 indexed issueId, address indexed client, uint256 amountRefunded);
-    event Disputed(bytes32 indexed issueId, address indexed client);
-    event Slashed(bytes32 indexed issueId, address indexed faultyParty, uint256 slashedAmount);
+    event CancelRequested(bytes32 indexed issueId, address indexed requester);
+    event Cancelled(bytes32 indexed issueId);
+    event Disputed(bytes32 indexed issueId, address indexed raiser);
+    event ResolutionProposed(bytes32 indexed issueId, uint256 clientPercent, uint256 executeAfter);
+    event ResolutionExecuted(bytes32 indexed issueId, uint256 clientAmount, uint256 workerAmount);
+    event ResolutionOverridden(bytes32 indexed issueId, uint256 clientPercent);
     event Paused(address account);
     event Unpaused(address account);
 
@@ -41,13 +58,20 @@ contract BloodyRoarEscrow {
         _;
     }
 
-    constructor(address _arbiter) {
+    constructor(address _arbiter, address _kycToken, uint256 _challengePeriod) {
+        require(_kycToken != address(0), "Invalid KYC Token address");
         arbiter = _arbiter;
+        kycToken = IKycSoulboundToken(_kycToken);
+        challengePeriod = _challengePeriod;
         owner = msg.sender;
     }
 
     function setArbiter(address _arbiter) external onlyOwner {
         arbiter = _arbiter;
+    }
+    
+    function setChallengePeriod(uint256 _challengePeriod) external onlyOwner {
+        challengePeriod = _challengePeriod;
     }
 
     function setPaused(bool _paused) external onlyOwner {
@@ -56,41 +80,81 @@ contract BloodyRoarEscrow {
         else emit Unpaused(msg.sender);
     }
 
-    // Client deposits the reward amount + 10% commitment stake (Total = 110% of reward)
+    // Client deposits the reward amount when assigning a worker (Total = 100% of reward)
     function deposit(bytes32 issueId, address worker) external payable whenNotPaused {
         require(msg.value > 0, "Deposit amount must be greater than 0");
         require(!escrows[issueId].isValue, "Escrow already exists for this issue");
-
-        // rewardAmount is 100/110 of the total deposit value. clientStake is 10/110.
-        uint256 rewardAmount = (msg.value * 100) / 110;
-        uint256 clientStake = msg.value - rewardAmount;
+        require(worker != address(0), "Invalid worker address");
+        
+        // On-chain KYC Check: Skin in the game
+        require(kycToken.isVerified(worker), "Worker must be KYC verified");
 
         escrows[issueId] = Escrow({
             client: msg.sender,
             worker: worker,
-            rewardAmount: rewardAmount,
-            clientStake: clientStake,
-            workerStake: 0,
+            rewardAmount: msg.value,
             createdAt: block.timestamp,
-            state: EscrowState.AWAITING_STAKE,
-            isValue: true
+            state: EscrowState.AWAITING_DELIVERY,
+            isValue: true,
+            cancelRequestedByClient: false,
+            cancelRequestedByWorker: false,
+            disputeResolvedAt: 0,
+            clientPercent: 0
         });
 
-        emit Deposited(issueId, msg.sender, msg.value, rewardAmount, clientStake);
+        emit Deposited(issueId, msg.sender, worker, msg.value);
     }
-
-    // Worker stakes their 10% commitment stake
-    function stakeDeveloper(bytes32 issueId) external payable whenNotPaused {
+    
+    // Mutual Cancel: Request
+    function requestCancel(bytes32 issueId) external whenNotPaused {
         Escrow storage escrow = escrows[issueId];
         require(escrow.isValue, "Escrow does not exist");
-        require(msg.sender == escrow.worker, "Only the assigned worker can stake");
-        require(escrow.state == EscrowState.AWAITING_STAKE, "Invalid state for staking");
-        require(msg.value == escrow.clientStake, "Stake must equal 10% client stake");
-
-        escrow.workerStake = msg.value;
-        escrow.state = EscrowState.AWAITING_DELIVERY;
-
-        emit Staked(issueId, msg.sender, msg.value);
+        require(escrow.state == EscrowState.AWAITING_DELIVERY, "Invalid state");
+        require(msg.sender == escrow.client || msg.sender == escrow.worker, "Only client or worker can request");
+        
+        if (msg.sender == escrow.client) {
+            escrow.cancelRequestedByClient = true;
+        } else {
+            escrow.cancelRequestedByWorker = true;
+        }
+        
+        emit CancelRequested(issueId, msg.sender);
+        
+        // Auto-approve if both requested
+        if (escrow.cancelRequestedByClient && escrow.cancelRequestedByWorker) {
+            _executeCancel(issueId);
+        }
+    }
+    
+    // Mutual Cancel: Approve
+    function approveCancel(bytes32 issueId) external whenNotPaused {
+        Escrow storage escrow = escrows[issueId];
+        require(escrow.isValue, "Escrow does not exist");
+        require(escrow.state == EscrowState.AWAITING_DELIVERY, "Invalid state");
+        
+        if (msg.sender == escrow.client) {
+            require(escrow.cancelRequestedByWorker, "Worker hasn't requested cancel");
+            escrow.cancelRequestedByClient = true;
+        } else if (msg.sender == escrow.worker) {
+            require(escrow.cancelRequestedByClient, "Client hasn't requested cancel");
+            escrow.cancelRequestedByWorker = true;
+        } else {
+            revert("Only client or worker can approve");
+        }
+        
+        _executeCancel(issueId);
+    }
+    
+    function _executeCancel(bytes32 issueId) internal {
+        Escrow storage escrow = escrows[issueId];
+        escrow.state = EscrowState.CANCELLED;
+        
+        // Refund 100% to client
+        (bool sent, ) = payable(escrow.client).call{value: escrow.rewardAmount}("");
+        require(sent, "Failed to refund Client");
+        
+        emit Cancelled(issueId);
+        emit Refunded(issueId, escrow.client, escrow.rewardAmount);
     }
 
     // Worker can claim funds if client is inactive after timeout
@@ -103,16 +167,11 @@ contract BloodyRoarEscrow {
 
         escrow.state = EscrowState.COMPLETED;
 
-        // Return client stake to client
-        (bool sentClient, ) = payable(escrow.client).call{value: escrow.clientStake}("");
-        require(sentClient, "Failed to refund client stake");
-
-        // Send reward + worker stake to worker
-        uint256 releaseVal = escrow.rewardAmount + escrow.workerStake;
-        (bool sentWorker, ) = payable(escrow.worker).call{value: releaseVal}("");
+        // Send reward to worker
+        (bool sentWorker, ) = payable(escrow.worker).call{value: escrow.rewardAmount}("");
         require(sentWorker, "Failed to release worker funds");
 
-        emit Released(issueId, escrow.worker, releaseVal);
+        emit Released(issueId, escrow.worker, escrow.rewardAmount);
     }
 
     // Release funds to the worker (Called by Client)
@@ -124,16 +183,11 @@ contract BloodyRoarEscrow {
 
         escrow.state = EscrowState.COMPLETED;
 
-        // Refund client stake back to client
-        (bool sentClient, ) = payable(escrow.client).call{value: escrow.clientStake}("");
-        require(sentClient, "Failed to refund client stake");
-
-        // Release reward + worker stake to developer
-        uint256 releaseVal = escrow.rewardAmount + escrow.workerStake;
-        (bool sentWorker, ) = payable(escrow.worker).call{value: releaseVal}("");
+        // Release reward to developer
+        (bool sentWorker, ) = payable(escrow.worker).call{value: escrow.rewardAmount}("");
         require(sentWorker, "Failed to release worker funds");
 
-        emit Released(issueId, escrow.worker, releaseVal);
+        emit Released(issueId, escrow.worker, escrow.rewardAmount);
     }
 
     // Raise a dispute (Client or Worker) locking the funds
@@ -141,58 +195,71 @@ contract BloodyRoarEscrow {
         Escrow storage escrow = escrows[issueId];
         require(escrow.isValue, "Escrow does not exist");
         require(msg.sender == escrow.client || msg.sender == escrow.worker, "Only client or worker can raise dispute");
-        require(
-            escrow.state == EscrowState.AWAITING_DELIVERY || escrow.state == EscrowState.AWAITING_STAKE,
-            "Invalid state"
-        );
+        require(escrow.state == EscrowState.AWAITING_DELIVERY, "Invalid state");
 
         escrow.state = EscrowState.DISPUTED;
 
         emit Disputed(issueId, msg.sender);
     }
 
-    // Arbiter resolves dispute
-    // refundClient = true: Client wins. Slashed developer stake goes to owner/arbiter as dispute fee.
-    // refundClient = false: Developer wins. Slashed client stake goes to owner/arbiter as dispute fee.
-    function resolveDispute(bytes32 issueId, bool refundClient) external whenNotPaused {
-        require(msg.sender == arbiter, "Only arbiter can resolve disputes");
+    // Arbiter proposes a resolution (Partial Release)
+    function proposeResolution(bytes32 issueId, uint256 clientPercent) external whenNotPaused {
+        require(msg.sender == arbiter, "Only arbiter can propose resolution");
+        require(clientPercent <= 100, "Percentage must be <= 100");
+        
         Escrow storage escrow = escrows[issueId];
         require(escrow.isValue, "Escrow does not exist");
         require(escrow.state == EscrowState.DISPUTED, "Invalid state");
 
-        if (refundClient) {
-            escrow.state = EscrowState.REFUNDED;
-
-            // Return reward + client stake to Client
-            uint256 refundVal = escrow.rewardAmount + escrow.clientStake;
-            (bool sent, ) = payable(escrow.client).call{value: refundVal}("");
-            require(sent, "Failed to refund Client");
-
-            // Slash developer stake: send to owner/arbiter
-            if (escrow.workerStake > 0) {
-                (bool sentArb, ) = payable(owner).call{value: escrow.workerStake}("");
-                require(sentArb, "Failed to transfer slashed worker stake");
-                emit Slashed(issueId, escrow.worker, escrow.workerStake);
-            }
-
-            emit Refunded(issueId, escrow.client, refundVal);
-        } else {
-            escrow.state = EscrowState.COMPLETED;
-
-            // Send reward + worker stake to Developer
-            uint256 releaseVal = escrow.rewardAmount + escrow.workerStake;
-            (bool sent, ) = payable(escrow.worker).call{value: releaseVal}("");
-            require(sent, "Failed to release to Developer");
-
-            // Slash client stake: send to owner/arbiter
-            if (escrow.clientStake > 0) {
-                (bool sentArb, ) = payable(owner).call{value: escrow.clientStake}("");
-                require(sentArb, "Failed to transfer slashed client stake");
-                emit Slashed(issueId, escrow.client, escrow.clientStake);
-            }
-
-            emit Released(issueId, escrow.worker, releaseVal);
+        escrow.state = EscrowState.RESOLUTION_PROPOSED;
+        escrow.clientPercent = clientPercent;
+        escrow.disputeResolvedAt = block.timestamp;
+        
+        emit ResolutionProposed(issueId, clientPercent, block.timestamp + challengePeriod);
+    }
+    
+    // Execute resolution after Timelock Challenge Period
+    function executeResolution(bytes32 issueId) external whenNotPaused {
+        Escrow storage escrow = escrows[issueId];
+        require(escrow.isValue, "Escrow does not exist");
+        require(escrow.state == EscrowState.RESOLUTION_PROPOSED, "No resolution proposed");
+        require(block.timestamp >= escrow.disputeResolvedAt + challengePeriod, "Challenge period not over");
+        
+        _distributeResolutionFunds(issueId);
+    }
+    
+    // Owner override in case Arbiter is compromised (SPOF protection)
+    function overrideResolution(bytes32 issueId, uint256 clientPercent) external onlyOwner {
+        require(clientPercent <= 100, "Percentage must be <= 100");
+        
+        Escrow storage escrow = escrows[issueId];
+        require(escrow.isValue, "Escrow does not exist");
+        require(escrow.state == EscrowState.DISPUTED || escrow.state == EscrowState.RESOLUTION_PROPOSED, "Invalid state");
+        
+        escrow.clientPercent = clientPercent;
+        
+        emit ResolutionOverridden(issueId, clientPercent);
+        _distributeResolutionFunds(issueId);
+    }
+    
+    function _distributeResolutionFunds(bytes32 issueId) internal {
+        Escrow storage escrow = escrows[issueId];
+        escrow.state = EscrowState.COMPLETED; // End state
+        
+        uint256 clientAmount = (escrow.rewardAmount * escrow.clientPercent) / 100;
+        uint256 workerAmount = escrow.rewardAmount - clientAmount;
+        
+        if (clientAmount > 0) {
+            (bool sentClient, ) = payable(escrow.client).call{value: clientAmount}("");
+            require(sentClient, "Failed to refund Client");
         }
+        
+        if (workerAmount > 0) {
+            (bool sentWorker, ) = payable(escrow.worker).call{value: workerAmount}("");
+            require(sentWorker, "Failed to pay Worker");
+        }
+        
+        emit ResolutionExecuted(issueId, clientAmount, workerAmount);
     }
 
     function getEscrow(bytes32 issueId) external view returns (Escrow memory) {
