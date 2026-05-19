@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-/.pnp
+.pnp
 .pnp.js
 
 # Testing
@@ -47,6 +47,16 @@ public/uploads/
 # Database
 *.db
 *.sqlite
+
+# Blockchain / Hardhat
+artifacts/
+cache/
+typechain/
+typechain-types/
+.openzeppelin/
+ignition/deployments/
+*.abi
+*.bin
 
 # Misc
 .cache

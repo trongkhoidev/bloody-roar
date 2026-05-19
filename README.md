@@ -1,16 +1,42 @@
-# React + Vite
+# 🩸 Bloody Roar Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bloody Roar is a decentralized marketplace for developers and clients, featuring AI-guarded real-time chat, GitHub automation, and Smart Contract escrow payments.
 
-Currently, two official plugins are available:
+## 🏗 Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This is a **pnpm monorepo** containing the following applications:
 
-## React Compiler
+- **`apps/api`**: The core Backend API (Node.js/Express) with AI Guard and GitHub integration.
+- **`apps/web`**: The modern Frontend (React/Vite).
+- **`apps/blockchain`**: Smart contracts and blockchain integration scripts (Hardhat/Solidity).
+- **`apps/api/documentation`**: A documentation portal for the project.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Quick Start
 
-## Expanding the ESLint configuration
+Ensure you have [pnpm](https://pnpm.io/) installed.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1.  **Install dependencies**:
+    ```bash
+    pnpm install
+    ```
+
+2.  **Set up environment**:
+    Copy `.env.example` to `.env` in the root and in `apps/api`.
+
+3.  **Run in development**:
+    ```bash
+    pnpm dev
+    ```
+    This will start both the API and the Web frontend in parallel.
+
+## 🛠 Tech Stack
+
+- **Frontend**: React, TailwindCSS, Vite
+- **Backend**: Node.js, Express, Socket.io, Mongoose
+- **Blockchain**: Solidity, Hardhat, Ethers.js
+- **AI**: OpenAI (Moderation & Content Analysis)
+- **Database**: MongoDB
+
+## 📅 Roadmap
+
+See [ROADMAP.md](./ROADMAP.md) for the detailed project timeline and phases.

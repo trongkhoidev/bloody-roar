@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  /* Dark Theme Default */
+  --color-primary: #fff;
+  --color-primary-hover: #fafafa;
+  --color-primary-muted: #a1a1aa;
+
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-accent-light: #a78bfa;
+
+  --color-success: #00d68f;
+  --color-success-muted: #00c27c;
+  --color-warning: #f5a623;
+  --color-error: #ee5253;
+
+  /* Dark Theme - High-Contrast Premium Grays */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #121214;
+  --color-bg-tertiary: #1b1b1f;
+  --color-bg-elevated: #262626;
+  --color-bg-card: #1b1b1f;
+  --color-bg-header: rgba(23, 23, 23, 0.8);
+
+  --color-text-primary: #ededed;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+
+  --color-border: rgba(255, 255, 255, 0.03);
+  --color-border-light: transparent;
+  --color-border-hover: #404040;
+}
+
+html[data-theme='light'] {
+  /* Light Theme */
+  --color-bg-primary: #f0f2f5;
+  --color-bg-secondary: #e4e6eb;
+  --color-bg-tertiary: #ffffff;
+  --color-bg-elevated: #f9fafb;
+  --color-bg-card: #ffffff;
+  --color-bg-header: rgba(255, 255, 255, 0.8);
+
+  --color-text-primary: #09090b;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #71717a;
+
+  --color-border: rgba(0, 0, 0, 0.03);
+  --color-border-light: transparent;
+  --color-border-hover: #d4d4d8;
+}
+
+@theme {
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-bg-tertiary: var(--color-bg-tertiary);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-card: var(--color-bg-card);
+  --color-bg-header: var(--color-bg-header);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  --color-border: var(--color-border);
+  --color-border-light: var(--color-border-light);
+  --color-border-hover: var(--color-border-hover);
+
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-light: var(--color-accent-light);
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}

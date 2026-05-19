@@ -14,9 +14,8 @@
   "author": "",
   "license": "ISC",
   "type": "module",
-  "dependencies": {
-  },
   "devDependencies": {
+    "playwright": "^1.60.0",
     "typescript": "~5.8.0"
   }
 }

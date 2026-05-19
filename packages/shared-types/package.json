@@ -1,0 +1,11 @@
+{
+  "name": "@bloody-roar/shared-types",
+  "version": "1.0.0",
+  "description": "Shared constants and types for Bloody Roar Platform",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  }
+}

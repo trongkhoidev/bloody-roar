@@ -47,7 +47,7 @@ def detect_project_type(project_path: Path) -> dict:
                 result["linters"].append({"name": "eslint", "cmd": ["npx", "eslint", "."]})
             
             # Check for TypeScript
-            if "typescript" in deps or (project_path / "tsconfig.json").exists():
+            if (project_path / "tsconfig.json").exists():
                 result["linters"].append({"name": "tsc", "cmd": ["npx", "tsc", "--noEmit"]})
                 
         except:
