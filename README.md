@@ -29,37 +29,37 @@ flowchart TD
     end
 
     subgraph Escrow ["2. Giao dịch Ký quỹ Lười (Lazy Deposit v2)"]
-        H --> I[Client tạo Task & Ký cam kết EIP-712 off-chain]
-        I --> J[Dev ứng tuyển - Không cọc, rủi ro bằng 0]
-        J --> K[Client xem xét ứng viên & Chọn Dev]
-        K --> L{Smart Contract kiểm tra Dev có KYC SBT?}
-        L -- Có --> M[Client gọi deposit nạp 100% bounty on-chain]
-        M --> N[Trạng thái AWAITING_DELIVERY]
-        L -- Không --> N2[Giao dịch bị chặn Revert]
+        H --> I["Client tạo Task & Ký cam kết EIP-712 off-chain"]
+        I --> J["Dev ứng tuyển - Không cọc, rủi ro bằng 0"]
+        J --> K["Client xem xét ứng viên & Chọn Dev"]
+        K --> L{"Smart Contract kiểm tra Dev có KYC SBT?"}
+        L -- Có --> M["Client gọi deposit nạp 100% bounty on-chain"]
+        M --> N["Trạng thái AWAITING_DELIVERY"]
+        L -- Không --> N2["Giao dịch bị chặn Revert"]
     end
 
     subgraph Sandbox ["3. Coding & Kiểm duyệt Tự động"]
-        N --> O[Khởi tạo Docker Sandbox IDE cô lập]
-        O --> P[Dev Code trực tiếp trên Web IDE]
-        P --> Q[Ghi Terminal Audit Logs & File Watcher ngầm]
-        Q --> R[Dev nộp bài: Auto-Push nhánh fix/issue-ID]
-        R --> S[CI/CD Pipeline chạy Test Suite tự động]
-        S --> T[AI Guard quét mã nguồn, che secrets & API Keys]
-        T --> U{Vượt qua CI/CD & AI?}
-        U -- Fail --> V[Báo lỗi Dev sửa lại]
-        U -- Pass --> W[Oracle ký xác thực kết quả Pass]
+        N --> O["Khởi tạo Docker Sandbox IDE cô lập"]
+        O --> P["Dev Code trực tiếp trên Web IDE"]
+        P --> Q["Ghi Terminal Audit Logs & File Watcher ngầm"]
+        Q --> R["Dev nộp bài: Auto-Push nhánh fix/issue-ID"]
+        R --> S["CI/CD Pipeline chạy Test Suite tự động"]
+        S --> T["AI Guard quét mã nguồn, che secrets & API Keys"]
+        T --> U{"Vượt qua CI/CD & AI?"}
+        U -- Fail --> V["Báo lỗi Dev sửa lại"]
+        U -- Pass --> W["Oracle ký xác thực kết quả Pass"]
     end
 
     subgraph Resolution ["4. Giải quyết & Thanh toán"]
-        W --> X{Client phản hồi trong 48h?}
-        X -- Không / Approve --> Y[Smart Contract tự động Giải ngân]
-        Y --> Z[Dev nhận 100% Bounty]
+        W --> X{"Client phản hồi trong 48h?"}
+        X -- Không / Approve --> Y["Smart Contract tự động Giải ngân"]
+        Y --> Z["Dev nhận 100% Bounty"]
         
-        X -- Dispute / Yêu cầu sửa đổi --> ZA[SC chuyển trạng thái DISPUTED]
-        ZA --> ZB[AI Dispute Assistant đề xuất tỷ lệ]
-        ZB --> ZC[Arbiter duyệt: proposeResolution(Tỷ lệ %)]
-        ZC --> ZD[Timelock 24h Challenge Period]
-        ZD --> ZE[SC giải ngân chia phần trăm cho Client & Dev]
+        X -- Dispute / Yêu cầu sửa đổi --> ZA["SC chuyển trạng thái DISPUTED"]
+        ZA --> ZB["AI Dispute Assistant đề xuất tỷ lệ"]
+        ZB --> ZC["Arbiter duyệt: proposeResolution(Tỷ lệ %)"]
+        ZC --> ZD["Timelock 24h Challenge Period"]
+        ZD --> ZE["SC giải ngân chia phần trăm cho Client & Dev"]
     end
 
     classDef kyc fill:#1a365d,stroke:#3182ce,stroke-width:2px,color:#fff;
